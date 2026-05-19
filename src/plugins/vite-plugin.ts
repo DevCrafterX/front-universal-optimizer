@@ -1,6 +1,42 @@
 import type { Plugin } from 'vite'
-import { OptimizeConfig } from '../config/default.config'
-import { SecurityGuard } from '../core/securityGuard'
+import { OptimizeConfig, ChunkSplitConfig } from '../config/default.config'
+
+function createFineGrainedChunks(config: ChunkSplitConfig) {
+  const customRules = config.customRules || {}
+  
+  return (id: string): string | undefined => {
+    if (!id.includes('node_modules')) {
+      return undefined
+    }
+
+    // 先检查自定义规则
+    for (const [chunkName, testFn] of Object.entries(customRules)) {
+      if (testFn(id)) {
+        return chunkName
+      }
+    }
+
+    // 默认细粒度分包策略
+    if (id.includes('react') || id.includes('react-dom')) {
+      return 'vendor-react'
+    }
+    if (id.includes('vue')) {
+      return 'vendor-vue'
+    }
+    if (id.includes('lodash') || id.includes('underscore')) {
+      return 'vendor-lodash'
+    }
+    if (id.includes('axios') || id.includes('fetch')) {
+      return 'vendor-http'
+    }
+    if (id.includes('moment') || id.includes('dayjs') || id.includes('date-fns')) {
+      return 'vendor-date'
+    }
+    
+    // 其他第三方库统一打包
+    return 'vendor'
+  }
+}
 
 export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
   return {
@@ -8,8 +44,11 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
     enforce: 'post',
 
     config(viteConfig) {
-      if (config.chunkSplit && viteConfig.build?.rollupOptions) {
-        // 使用更通用的分包策略，避免硬编码特定库
+      const chunkSplitConfig = typeof config.chunkSplit === 'object'
+        ? config.chunkSplit
+        : { enable: config.chunkSplit }
+
+      if (chunkSplitConfig.enable && viteConfig.build?.rollupOptions) {
         const output = viteConfig.build.rollupOptions.output as any
         const existingManualChunks = output?.manualChunks
         
@@ -21,9 +60,15 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
               return existingManualChunks(id)
             }
             
-            // 默认将 node_modules 中的包分到 vendor chunk
-            if (id.includes('node_modules')) {
-              return 'vendor'
+            // 根据策略生成分包
+            const strategy = chunkSplitConfig.strategy || 'fine-grained'
+            if (strategy === 'fine-grained' || strategy === 'custom') {
+              return createFineGrainedChunks(chunkSplitConfig)(id)
+            } else {
+              // 默认策略：所有 node_modules 打包到 vendor
+              if (id.includes('node_modules')) {
+                return 'vendor'
+              }
             }
           }
         }
@@ -36,20 +81,32 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
 
     transform(code, id) {
       // 只处理 JS/TS 文件
-      if (!/\.[jt]sx?$/.test(id)) {return}
+      if (!/\.[jt]sx?$/.test(id)) {return null}
       
       if (config.env === 'production' && config.clearConsole) {
-        // 更完善的 console 清理（包括 warn, error 等）
-        return code.replace(/console\.(log|warn|error|info|debug)\([^)]*\);?/g, '')
+        const strategy = config.consoleRemovalStrategy || 'babel'
+        
+        if (strategy === 'regex') {
+          // 简单的正则替换（保留用于兼容）
+          return code.replace(/console\.(log|warn|error|info|debug)\([^)]*\);?/g, '')
+        } else {
+          // Babel 策略：使用注释标记，让用户自行配置 babel 插件
+          // 这里添加标记，实际转换由用户的 babel 配置完成
+          console.warn('[front-universal-optimizer] clearConsole 启用，请确保项目已配置 @babel/plugin-transform-remove-console')
+          return null
+        }
       }
-      return null // 返回 null 表示不转换
+      return null
     },
 
     transformIndexHtml(html) {
       let res = html
-      if (config.enableCSP) {res = SecurityGuard.injectCSP(res)}
+      if (config.enableCSP) {
+        const cspPolicy = config.cspPolicy || "default-src 'self'"
+        const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${cspPolicy}">`
+        res = res.replace('<head>', `<head>${cspMeta}`)
+      }
       if (config.domPrefetch) {
-        // 使用通用占位符，让用户自行配置
         res = res.replace('<head>', '<head><!-- dns-prefetch 建议：添加 <link rel="dns-prefetch" href="//your-api-domain.com"> -->')
       }
       return res

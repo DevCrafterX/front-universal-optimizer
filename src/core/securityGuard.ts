@@ -6,11 +6,6 @@ export const SecurityGuard = {
     return str.replace(/[&<>"']/g, s => map[s] || s)
   },
 
-  injectCSP(html: string): string {
-    const csp = '<meta http-equiv="Content-Security-Policy" content="default-src \'self\';script-src \'self\';style-src \'self\' \'unsafe-inline\';img-src \'self\' data:;connect-src \'self\'">'
-    return html.replace('<head>', `<head>${csp}`)
-  },
-
   secureRequest(reqConfig: any) {
     const sensitive = ['password', 'idCard', 'phone', 'token']
     sensitive.forEach(k => {
@@ -56,7 +51,6 @@ export const SecurityGuard = {
     }
   },
 
-  // 移除 banDangerApi，改为提供检测方法
   checkDangerApi() {
     if (typeof window === 'undefined') {return []}
     
@@ -73,14 +67,5 @@ export const SecurityGuard = {
     }
     
     return dangers
-  },
-
-  preventPageTamper() {
-    if (typeof document === 'undefined') {return}
-    
-    document.addEventListener('contextmenu', e => e.preventDefault())
-    document.addEventListener('keydown', e => {
-      if (e.ctrlKey && ['s', 'u'].includes(e.key)) {e.preventDefault()}
-    })
   }
 }
