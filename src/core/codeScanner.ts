@@ -66,12 +66,26 @@ export class CodeScanner {
     this.scannedFiles++
 
     try {
-      // 优先使用 AST 分析
-      if (this.useAST) {
-        this.scanWithAST(filePath, code)
-      } else {
-        // 降级为正则扫描
-        this.scanWithRegex(filePath, code)
+      // 根据文件类型选择扫描策略
+      const fileExt = filePath.split('.').pop()?.toLowerCase()
+      
+      // Vue SFC 文件特殊处理
+      if (fileExt === 'vue') {
+        this.scanVueFile(filePath, code)
+      } 
+      // Svelte 文件
+      else if (fileExt === 'svelte') {
+        this.scanSvelteFile(filePath, code)
+      }
+      // JSX/TSX 和普通 JS/TS 文件
+      else {
+        // 优先使用 AST 分析
+        if (this.useAST) {
+          this.scanWithAST(filePath, code, fileExt)
+        } else {
+          // 降级为正则扫描
+          this.scanWithRegex(filePath, code)
+        }
       }
 
       // 执行自定义规则
@@ -92,7 +106,7 @@ export class CodeScanner {
   }
 
   // AST 扫描
-  private scanWithAST(filePath: string, code: string) {
+  private scanWithAST(filePath: string, code: string, fileExt?: string) {
     // 动态导入 Babel（避免打包）
     let parser: any
     let traverse: any
@@ -107,14 +121,23 @@ export class CodeScanner {
     }
 
     try {
+      // 根据文件扩展名配置 Babel 插件
+      const plugins: string[] = ['decorators-legacy']
+      
+      // JSX/TSX 文件启用 JSX 支持
+      if (fileExt === 'jsx' || fileExt === 'tsx') {
+        plugins.push('jsx')
+      }
+      
+      // TS/TSX 文件启用 TypeScript 支持
+      if (fileExt === 'ts' || fileExt === 'tsx') {
+        plugins.push('typescript')
+      }
+      
       // 解析代码为 AST
       const ast = parser.parse(code, {
         sourceType: 'module',
-        plugins: [
-          'jsx',
-          'typescript',
-          'decorators-legacy'
-        ]
+        plugins
       })
 
       // 执行各种检测
@@ -460,5 +483,160 @@ export class CodeScanner {
       const marker = num === line ? '>>> ' : '    '
       return `${marker}${num} | ${l}`
     }).join('\n')
+  }
+
+  // ========== 特殊文件类型处理 ==========
+
+  // 扫描 Vue SFC 文件
+  private scanVueFile(filePath: string, code: string) {
+    // 提取 <script> 部分
+    const scriptMatch = code.match(/<script[^>]*>([\s\S]*?)<\/script>/i)
+    if (scriptMatch) {
+      const scriptCode = scriptMatch[1]
+      // 使用 AST 或正则扫描 script 部分
+      if (this.useAST) {
+        try {
+          this.scanWithAST(filePath, scriptCode, 'ts')
+        } catch {
+          this.scanWithRegex(filePath, scriptCode)
+        }
+      } else {
+        this.scanWithRegex(filePath, scriptCode)
+      }
+    }
+
+    // 提取 <template> 部分进行模板扫描
+    const templateMatch = code.match(/<template[^>]*>([\s\S]*?)<\/template>/i)
+    if (templateMatch) {
+      const templateCode = templateMatch[1]
+      // 对模板部分使用正则扫描（检测图片、链接等）
+      this.scanVueTemplate(filePath, templateCode)
+    }
+  }
+
+  // 扫描 Vue 模板部分
+  private scanVueTemplate(filePath: string, templateCode: string) {
+    const lines = templateCode.split('\n')
+    
+    lines.forEach((line, idx) => {
+      // 检测图片缺少 lazy loading
+      if (/<img[^>]*:[\s"']src[\s"'=/].*>/.test(line) || /<img[^>]*src[\s"'=/].*>/.test(line)) {
+        if (!line.includes('loading="lazy"')) {
+          this.issues.push({
+            type: 'performance',
+            severity: 'medium',
+            file: filePath,
+            line: idx + 1,
+            column: 1,
+            message: '图片未使用懒加载',
+            suggestion: '添加 loading="lazy" 属性: <img src="..." loading="lazy" alt=""/>',
+            codeFrame: line.trim()
+          })
+        }
+
+        // 检测是否可以使用 WebP
+        const srcMatch = line.match(/src=["']([^"']+)["']/)
+        if (srcMatch && /\.(jpg|jpeg|png|gif)$/i.test(srcMatch[1])) {
+          this.issues.push({
+            type: 'performance',
+            severity: 'low',
+            file: filePath,
+            line: idx + 1,
+            column: 1,
+            message: `图片可能可以转换为 WebP 格式: ${srcMatch[1]}`,
+            suggestion: '考虑使用 WebP 格式以减小文件体积',
+            codeFrame: line.trim()
+          })
+        }
+      }
+
+      // 检测 @click 等事件处理器（可能需要防抖）
+      if (/@(click|input|scroll|mousemove|keypress)[="']/.test(line)) {
+        const match = line.match(/@(click|input|scroll|mousemove|keypress)/)
+        if (match) {
+          const eventType = match[1]
+          const highFreqEvents = ['input', 'scroll', 'mousemove', 'keypress']
+          if (highFreqEvents.includes(eventType)) {
+            this.issues.push({
+              type: 'performance',
+              severity: 'medium',
+              file: filePath,
+              line: idx + 1,
+              column: 1,
+              message: `高频事件 @${eventType} 可能需要防抖或节流优化`,
+              suggestion: '考虑使用 useDebounce 或 useThrottle 包装事件处理器',
+              codeFrame: line.trim()
+            })
+          }
+        }
+      }
+    })
+  }
+
+  // 扫描 Svelte 文件
+  private scanSvelteFile(filePath: string, code: string) {
+    // 提取 <script> 部分
+    const scriptMatch = code.match(/<script[^>]*>([\s\S]*?)<\/script>/i)
+    if (scriptMatch) {
+      const scriptCode = scriptMatch[1]
+      // 使用 AST 或正则扫描 script 部分
+      if (this.useAST) {
+        try {
+          this.scanWithAST(filePath, scriptCode, 'ts')
+        } catch {
+          this.scanWithRegex(filePath, scriptCode)
+        }
+      } else {
+        this.scanWithRegex(filePath, scriptCode)
+      }
+    }
+
+    // 提取 HTML 模板部分
+    const htmlCode = code.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    this.scanSvelteTemplate(filePath, htmlCode)
+  }
+
+  // 扫描 Svelte 模板部分
+  private scanSvelteTemplate(filePath: string, templateCode: string) {
+    const lines = templateCode.split('\n')
+    
+    lines.forEach((line, idx) => {
+      // 检测图片缺少 lazy loading
+      if (/<img[^>]*src[\s"'=/].*>/.test(line)) {
+        if (!line.includes('loading="lazy"')) {
+          this.issues.push({
+            type: 'performance',
+            severity: 'medium',
+            file: filePath,
+            line: idx + 1,
+            column: 1,
+            message: '图片未使用懒加载',
+            suggestion: '添加 loading="lazy" 属性: <img src="..." loading="lazy" alt=""/>',
+            codeFrame: line.trim()
+          })
+        }
+      }
+
+      // 检测 on:click 等事件处理器
+      if (/on:(click|input|scroll|mousemove|keypress)[="']/.test(line)) {
+        const match = line.match(/on:(click|input|scroll|mousemove|keypress)/)
+        if (match) {
+          const eventType = match[1]
+          const highFreqEvents = ['input', 'scroll', 'mousemove', 'keypress']
+          if (highFreqEvents.includes(eventType)) {
+            this.issues.push({
+              type: 'performance',
+              severity: 'medium',
+              file: filePath,
+              line: idx + 1,
+              column: 1,
+              message: `高频事件 on:${eventType} 可能需要防抖或节流优化`,
+              suggestion: '考虑使用 useDebounce 或 useThrottle 包装事件处理器',
+              codeFrame: line.trim()
+            })
+          }
+        }
+      }
+    })
   }
 }
