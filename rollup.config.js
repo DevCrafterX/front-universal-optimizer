@@ -24,8 +24,8 @@ const external = [
 const plugins = [
   json(),
   resolve({
-    browser: true, // 优先使用浏览器版本
-    preferBuiltins: false // 不优先使用 Node.js 内置模块
+    browser: false, // 不强制使用浏览器版本
+    preferBuiltins: true // 优先使用 Node.js 内置模块
   }),
   commonjs(),
   typescript({ 
