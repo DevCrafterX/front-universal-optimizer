@@ -1,6 +1,6 @@
 {
   "name": "front-universal-optimizer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "前端通用性能+安全优化工具库，零侵入仅提示，多框架适配，编译自动优化",
   "type": "module",
   "main": "dist/index.cjs",
@@ -8,7 +8,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "rollup -c",
