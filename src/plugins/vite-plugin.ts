@@ -1,5 +1,7 @@
 import type { Plugin } from 'vite'
 import { OptimizeConfig, ChunkSplitConfig } from '../config/default.config'
+import { CodeScanner } from '../core/codeScanner'
+import { generateQuickTips } from '../utils/reportGenerator'
 
 function createFineGrainedChunks(config: ChunkSplitConfig) {
   const customRules = config.customRules || {}
@@ -39,6 +41,10 @@ function createFineGrainedChunks(config: ChunkSplitConfig) {
 }
 
 export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
+  // 创建代码扫描器
+  const scanner = new CodeScanner()
+  const isDev = config.env === 'development'
+
   return {
     name: 'front-universal-optimizer-vite',
     enforce: 'post',
@@ -101,6 +107,22 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
     transform(code, id) {
       // 只处理 JS/TS 文件
       if (!/\.[jt]sx?$/.test(id)) {return null}
+      
+      // 开发环境下进行代码扫描
+      if (isDev) {
+        try {
+          scanner.scanFile(id, code)
+          // 每隔 10 个文件输出一次快速提示
+          if (scanner.getResult().scannedFiles % 10 === 0) {
+            const result = scanner.getResult()
+            if (result.issues.length > 0) {
+              generateQuickTips(result)
+            }
+          }
+        } catch {
+          // 扫描失败不影响构建
+        }
+      }
       
       if (config.env === 'production' && config.clearConsole) {
         const strategy = config.consoleRemovalStrategy || 'babel'

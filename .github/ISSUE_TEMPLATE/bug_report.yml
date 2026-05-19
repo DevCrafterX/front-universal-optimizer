@@ -1,0 +1,85 @@
+name: 🐛 Bug Report
+description: 报告一个 bug
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你的反馈！请填写以下信息帮助我们定位问题。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 你使用的 front-universal-optimizer 版本
+      placeholder: 例如：1.2.0
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js 版本
+      description: 你的 Node.js 版本
+      placeholder: 例如：18.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: framework
+    attributes:
+      label: 使用的框架
+      multiple: true
+      options:
+        - Vue 2
+        - Vue 3
+        - React
+        - Angular
+        - Next.js
+        - Nuxt
+        - Svelte
+        - Uniapp
+        - 原生 JavaScript
+        - 其他
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清晰简洁地描述问题
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 如何复现这个问题
+      placeholder: |
+        1. 创建项目...
+        2. 安装插件...
+        3. 运行...
+        4. 看到错误...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+      description: 你期望发生什么
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际发生了什么
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 错误日志
+      description: 相关的错误信息
+      render: shell
+  - type: textarea
+    id: additional
+    attributes:
+      label: 其他信息
+      description: 其他可能有帮助的信息

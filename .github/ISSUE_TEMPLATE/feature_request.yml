@@ -1,0 +1,49 @@
+name: ✨ Feature Request
+description: 提议一个新功能
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你的想法！请填写以下信息。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 相关问题
+      description: 这个功能解决了什么问题？
+      placeholder: 当我在使用...时，我遇到了...问题
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 提议的解决方案
+      description: 你希望如何实现这个功能？
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案
+      description: 你考虑过哪些替代方案？
+  - type: dropdown
+    id: framework
+    attributes:
+      label: 相关框架
+      multiple: true
+      options:
+        - Vue 2
+        - Vue 3
+        - React
+        - Angular
+        - Next.js
+        - Nuxt
+        - Svelte
+        - Uniapp
+        - 通用（不限框架）
+  - type: textarea
+    id: additional
+    attributes:
+      label: 其他信息
+      description: 其他上下文、截图或代码示例
