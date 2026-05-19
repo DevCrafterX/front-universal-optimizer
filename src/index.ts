@@ -6,11 +6,19 @@ import { useThrottle } from './hooks/useThrottle'
 import { useAutoClear } from './hooks/useAutoClear'
 import { useVirtualList } from './hooks/useVirtualList'
 import ViteOptPlugin from './plugins/vite-plugin'
-import WebpackOptPlugin from './plugins/webpack-plugin'
 import { printOptTips } from './utils/optimizeTips'
 
 export function createCodeOptimizer(custom?: Partial<OptimizeConfig>) {
   const mergeCfg = { ...defaultConfig, ...custom }
+  
+  // 处理 chunkSplit 配置合并
+  if (custom?.chunkSplit && typeof custom.chunkSplit === 'object' && typeof defaultConfig.chunkSplit === 'object') {
+    mergeCfg.chunkSplit = {
+      ...defaultConfig.chunkSplit,
+      ...custom.chunkSplit
+    }
+  }
+  
   const frame = detectFrame()
   const frameRule = getFrameOptRule(frame)
 
@@ -19,7 +27,6 @@ export function createCodeOptimizer(custom?: Partial<OptimizeConfig>) {
     frame,
     frameRule,
     vitePlugin: ViteOptPlugin(mergeCfg),
-    webpackPlugin: WebpackOptPlugin(mergeCfg),
     security: SecurityGuard,
     useDebounce,
     useThrottle,

@@ -3,8 +3,8 @@
  * 验证所有支持的框架都能正确检测和适配
  */
 
-import { describe, it, expect } from 'vitest'
-import { createCodeOptimizer, FrameType, detectFrame, getFrameOptRule } from '../src/index'
+import { describe, it, expect, vi } from 'vitest'
+import { createCodeOptimizer, FrameType, detectFrame, getFrameOptRule } from '../src'
 
 describe('Framework Compatibility Tests', () => {
 
@@ -122,8 +122,7 @@ describe('Framework Compatibility Tests', () => {
         enableXSSDefend: true,
         enableCSP: true,
         safeRequestFilter: true,
-        safeStorage: true,
-        banDangerScript: true
+        safeStorage: true
       }
 
       const optimizer = createCodeOptimizer(config)
@@ -147,7 +146,6 @@ describe('Framework Compatibility Tests', () => {
       expect(optimizer.config.enableCSP).toBe(true)
       expect(optimizer.config.safeRequestFilter).toBe(true)
       expect(optimizer.config.safeStorage).toBe(true)
-      expect(optimizer.config.banDangerScript).toBe(true)
     })
 
     it('应该能够部分覆盖默认配置', () => {
@@ -173,11 +171,6 @@ describe('Framework Compatibility Tests', () => {
       expect(optimizer.vitePlugin.name).toBe('front-universal-optimizer-vite')
     })
 
-    it('Webpack 插件应该始终可用', () => {
-      const optimizer = createCodeOptimizer()
-      expect(optimizer.webpackPlugin).toBeDefined()
-    })
-
     it('插件应该尊重配置选项', () => {
       const optimizer = createCodeOptimizer({
         chunkSplit: true,
@@ -186,7 +179,6 @@ describe('Framework Compatibility Tests', () => {
       })
 
       expect(optimizer.vitePlugin).toBeDefined()
-      expect(optimizer.webpackPlugin).toBeDefined()
     })
   })
 
@@ -240,6 +232,9 @@ describe('Framework Compatibility Tests', () => {
       expect(virtualList.visibleList).toBeDefined()
       expect(virtualList.totalHeight).toBe(5000)
       expect(virtualList.scrollTo).toBeDefined()
+      expect(virtualList.startIndex).toBe(0)
+      expect(virtualList.endIndex).toBe(10)
+      expect(virtualList.visibleList.length).toBe(10)
     })
   })
 

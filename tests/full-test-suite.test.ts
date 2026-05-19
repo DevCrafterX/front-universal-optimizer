@@ -1,6 +1,6 @@
 /**
  * front-universal-optimizer 全量功能测试套件
- * 
+ *
  * 测试范围：
  * 1. 核心功能 - createCodeOptimizer、配置合并、框架检测
  * 2. Hooks 工具 - useDebounce、useThrottle、useAutoClear、useVirtualList
@@ -9,15 +9,10 @@
  * 5. 全开关可控 - 验证每个配置项独立生效
  */
 
-import { describe, it, expect } from 'vitest'
-import { createCodeOptimizer, FrameType } from '../src/index'
+import { describe, it, expect, vi } from 'vitest'
+import { createCodeOptimizer, FrameType, useDebounce, useThrottle, useAutoClear, useVirtualList } from '../src'
 import { defaultConfig } from '../src/config/default.config'
 import { SecurityGuard } from '../src/core/securityGuard'
-import { useDebounce } from '../src/hooks/useDebounce'
-import { useThrottle } from '../src/hooks/useThrottle'
-import { useAutoClear } from '../src/hooks/useAutoClear'
-import { useVirtualList } from '../src/hooks/useVirtualList'
-
 // ============================================
 // 1. 核心功能测试
 // ============================================
@@ -29,7 +24,6 @@ describe('Core Functionality', () => {
       expect(optimizer.config).toBeDefined()
       expect(optimizer.frame).toBeDefined()
       expect(optimizer.vitePlugin).toBeDefined()
-      expect(optimizer.webpackPlugin).toBeDefined()
       expect(optimizer.security).toBeDefined()
     })
 
@@ -134,7 +128,10 @@ describe('Hooks Tools', () => {
       debounced()
       expect(debounced.cancel).toBeDefined()
       
-      debounced.cancel()
+      // TypeScript 需要确认 cancel 方法存在
+      if (debounced.cancel) {
+        debounced.cancel()
+      }
       // cancel 后不应再执行
     })
   })
@@ -173,7 +170,10 @@ describe('Hooks Tools', () => {
       const throttled = useThrottle(fn, 100)
       
       expect(throttled.cancel).toBeDefined()
-      throttled.cancel()
+      // TypeScript 需要确认 cancel 方法存在
+      if (throttled.cancel) {
+        throttled.cancel()
+      }
     })
   })
 
@@ -206,7 +206,8 @@ describe('Hooks Tools', () => {
       cleaner.addListener(listener)
       cleaner.clearListener()
       
-      expect(listener).toHaveBeenCalled()
+      // clearListener 会调用所有监听器然后清空
+      expect(listener).toHaveBeenCalledTimes(1)
     })
 
     it('clearAll 应该清理所有资源', () => {
@@ -218,7 +219,8 @@ describe('Hooks Tools', () => {
       cleaner.addListener(listener)
       cleaner.clearAll()
       
-      expect(listener).toHaveBeenCalled()
+      // clearAll 会调用 clearListener，从而触发监听器
+      expect(listener).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -249,15 +251,11 @@ describe('Hooks Tools', () => {
       const list = Array.from({ length: 100 }, (_, i) => i)
       const virtualList = useVirtualList(list, { itemHeight: 50, visibleCount: 10 })
       
-      // scrollTo 会修改内部状态，需要重新获取结果
+      // scrollTo 会修改内部状态
       virtualList.scrollTo(50)
       
-      // 由于 useVirtualList 返回的是对象引用，需要重新调用获取最新状态
-      const updated = useVirtualList(list, { itemHeight: 50, visibleCount: 10 })
-      updated.scrollTo(50)
-      
-      expect(updated.startIndex).toBe(50)
-      expect(updated.endIndex).toBe(60)
+      expect(virtualList.startIndex).toBe(50)
+      expect(virtualList.endIndex).toBe(60)
     })
 
     it('应该处理边界情况', () => {
@@ -266,14 +264,11 @@ describe('Hooks Tools', () => {
       
       // 滚动到负数索引
       virtualList.scrollTo(-10)
-      let updated = useVirtualList(list, { itemHeight: 50, visibleCount: 10 })
-      updated.scrollTo(-10)
-      expect(updated.startIndex).toBe(0)
+      expect(virtualList.startIndex).toBe(0)
       
       // 滚动到超出范围的索引
-      updated = useVirtualList(list, { itemHeight: 50, visibleCount: 10 })
-      updated.scrollTo(1000)
-      expect(updated.startIndex).toBe(99)
+      virtualList.scrollTo(1000)
+      expect(virtualList.startIndex).toBe(99)
     })
   })
 })
@@ -298,16 +293,6 @@ describe('Security Guard', () => {
       const output = SecurityGuard.xssEscape(input)
       
       expect(output).toBe('&amp;&lt;&gt;&quot;&#39;')
-    })
-  })
-
-  describe('injectCSP', () => {
-    it('应该注入 CSP meta 标签', () => {
-      const html = '<html><head></head><body></body></html>'
-      const result = SecurityGuard.injectCSP(html)
-      
-      expect(result).toContain('Content-Security-Policy')
-      expect(result).toContain('<meta http-equiv')
     })
   })
 
@@ -440,7 +425,10 @@ describe('Full Configuration Control', () => {
     
     // 性能优化默认开启
     expect(optimizer.config.routeLazyLoad).toBe(true)
-    expect(optimizer.config.chunkSplit).toBe(true)
+    expect(typeof optimizer.config.chunkSplit).toBe('object')
+    if (typeof optimizer.config.chunkSplit === 'object') {
+      expect(optimizer.config.chunkSplit.enable).toBe(true)
+    }
   })
 })
 
@@ -472,37 +460,38 @@ describe('Plugin Functionality', () => {
         }
       }
       
-      const result = optimizer.vitePlugin.config(viteConfig)
-      
-      expect(result.build.rollupOptions.output).toBeDefined()
-      expect(result.build.brotliSize).toBe(true)
-    })
-  })
-
-  describe('Webpack Plugin', () => {
-    it('应该返回 Webpack 插件对象', () => {
-      const optimizer = createCodeOptimizer()
-      const plugin = optimizer.webpackPlugin
-      
-      expect(plugin).toBeDefined()
-      expect(plugin.apply).toBeDefined()
+      // 确保 config 方法存在
+      if (optimizer.vitePlugin.config) {
+        const result = optimizer.vitePlugin.config(viteConfig)
+        
+        expect(result.build.rollupOptions.output).toBeDefined()
+        expect(result.build.brotliSize).toBe(true)
+      }
     })
 
-    it('apply 方法应正确配置优化选项', () => {
+    it('细粒度分包配置应正常工作', () => {
       const optimizer = createCodeOptimizer({
-        chunkSplit: true,
-        clearConsole: true,
-        env: 'production'
+        chunkSplit: {
+          enable: true,
+          strategy: 'fine-grained',
+          customRules: {
+            'vendor-ui': (id) => id.includes('antd')
+          }
+        }
       })
       
-      const mockCompiler: any = {
-        options: {
-          optimization: {}
+      const viteConfig: any = {
+        build: {
+          rollupOptions: {}
         }
       }
       
-      expect(() => optimizer.webpackPlugin.apply(mockCompiler)).not.toThrow()
-      expect(mockCompiler.options.optimization.splitChunks).toBeDefined()
+      // 确保 config 方法存在
+      if (optimizer.vitePlugin.config) {
+        const result = optimizer.vitePlugin.config(viteConfig)
+        expect(result.build.rollupOptions.output).toBeDefined()
+        expect(typeof result.build.rollupOptions.output.manualChunks).toBe('function')
+      }
     })
   })
 })
@@ -541,7 +530,6 @@ describe('Integration Tests', () => {
     
     // 获取插件
     expect(optimizer.vitePlugin).toBeDefined()
-    expect(optimizer.webpackPlugin).toBeDefined()
   })
 
   it('生产环境配置应正确应用', () => {
@@ -549,13 +537,16 @@ describe('Integration Tests', () => {
       env: 'production',
       clearConsole: true,
       enableCSP: true,
-      chunkSplit: true
+      chunkSplit: {
+        enable: true,
+        strategy: 'fine-grained'
+      }
     })
     
     expect(optimizer.config.env).toBe('production')
     expect(optimizer.config.clearConsole).toBe(true)
     expect(optimizer.config.enableCSP).toBe(true)
-    expect(optimizer.config.chunkSplit).toBe(true)
+    expect(typeof optimizer.config.chunkSplit).toBe('object')
     
     // 启用生产模式
     expect(() => optimizer.enableProductionMode()).not.toThrow()

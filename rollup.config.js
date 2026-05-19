@@ -6,8 +6,6 @@ import dts from 'rollup-plugin-dts'
 // 将所有外部依赖列出，避免打包进最终产物
 const external = [
   'vite',
-  'webpack',
-  'terser-webpack-plugin',
   'chalk'
 ]
 

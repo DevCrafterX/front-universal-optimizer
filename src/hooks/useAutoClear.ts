@@ -1,8 +1,8 @@
 export function useAutoClear() {
-  let timers: number[] = []
+  let timers: Array<number | ReturnType<typeof setTimeout>> = []
   let listeners: Array<() => void> = []
 
-  const addTimer = (t: number) => timers.push(t)
+  const addTimer = (t: number | ReturnType<typeof setTimeout>) => timers.push(t)
   const addListener = (cb: () => void) => listeners.push(cb)
 
   const clearTimer = () => {
