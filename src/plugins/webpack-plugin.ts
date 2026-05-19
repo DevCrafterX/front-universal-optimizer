@@ -21,6 +21,7 @@ export default function WebpackOptPlugin(config: OptimizeConfig) {
       
       if (config.env === 'production' && config.clearConsole) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const TerserPlugin = require('terser-webpack-plugin')
           compiler.options.optimization.minimizer = compiler.options.optimization.minimizer || []
           compiler.options.optimization.minimizer.push(
@@ -33,7 +34,7 @@ export default function WebpackOptPlugin(config: OptimizeConfig) {
               } 
             })
           )
-        } catch (e) {
+        } catch {
           console.warn('[Webpack Plugin] terser-webpack-plugin 未安装，跳过 console 清理')
         }
       }

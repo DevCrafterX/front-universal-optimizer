@@ -6,13 +6,17 @@
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "lint": "eslint src/ tests/ --ext .ts,.tsx",
+    "lint:fix": "eslint src/ tests/ --ext .ts,.tsx --fix",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
@@ -24,20 +28,34 @@
     "terser-webpack-plugin": "^5.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/parser": "^8.59.4",
     "@vitest/ui": "^1.4.0",
+    "eslint": "^10.4.0",
+    "globals": "^17.6.0",
     "jsdom": "^24.0.0",
     "rollup": "^4.14.0",
     "rollup-plugin-dts": "^6.1.0",
     "tslib": "^2.6.2",
     "typescript": "^5.4.3",
+    "typescript-eslint": "^8.59.4",
     "vite": "^5.2.0",
     "vitest": "^1.4.0",
     "webpack": "^5.91.0"
   },
-  "keywords": ["前端优化","性能优化","前端安全","vue优化","react优化","开发提示","零侵入优化"],
+  "keywords": [
+    "前端优化",
+    "性能优化",
+    "前端安全",
+    "vue优化",
+    "react优化",
+    "开发提示",
+    "零侵入优化"
+  ],
   "author": "",
   "license": "MIT"
 }

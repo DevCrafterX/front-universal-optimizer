@@ -7,7 +7,7 @@ export function useDebounce<T extends (...args: any[]) => any>(fn: T, delay = 30
   let timer: any = null
   
   const debounced = function (...args: Parameters<T>) {
-    if (timer) clearTimeout(timer)
+    if (timer) {clearTimeout(timer)}
     // SSR 兼容：在浏览器环境使用 window.setTimeout，否则使用全局 setTimeout
     const setTimeoutFn = typeof window !== 'undefined' ? window.setTimeout : setTimeout
     timer = setTimeoutFn(() => fn(...args), delay)

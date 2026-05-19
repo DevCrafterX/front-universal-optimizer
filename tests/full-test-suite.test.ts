@@ -9,7 +9,7 @@
  * 5. 全开关可控 - 验证每个配置项独立生效
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { createCodeOptimizer, FrameType } from '../src/index'
 import { defaultConfig } from '../src/config/default.config'
 import { SecurityGuard } from '../src/core/securityGuard'
@@ -334,7 +334,7 @@ describe('Security Guard', () => {
 
   describe('safeStorage', () => {
     it('应该能够存储和读取数据', () => {
-      if (typeof window === 'undefined') return
+      if (typeof window === 'undefined') {return}
       
       const key = 'test_key'
       const value = { token: 'secret_token', userId: 123 }

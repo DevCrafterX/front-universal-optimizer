@@ -7,7 +7,7 @@ export const SecurityGuard = {
   },
 
   injectCSP(html: string): string {
-    const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'self';script-src 'self';style-src 'self' 'unsafe-inline';img-src 'self' data:;connect-src 'self'">`
+    const csp = '<meta http-equiv="Content-Security-Policy" content="default-src \'self\';script-src \'self\';style-src \'self\' \'unsafe-inline\';img-src \'self\' data:;connect-src \'self\'">'
     return html.replace('<head>', `<head>${csp}`)
   },
 
@@ -48,7 +48,7 @@ export const SecurityGuard = {
     }
     try {
       const res = localStorage.getItem(`safe_${key}`)
-      if (!res) return null
+      if (!res) {return null}
       return JSON.parse(decodeURIComponent(escape(atob(res))))
     } catch (e) {
       console.error('[Security Error] 安全读取失败:', e)
@@ -58,7 +58,7 @@ export const SecurityGuard = {
 
   // 移除 banDangerApi，改为提供检测方法
   checkDangerApi() {
-    if (typeof window === 'undefined') return []
+    if (typeof window === 'undefined') {return []}
     
     const dangers: string[] = []
     if (typeof window.eval !== 'undefined' && window.eval.toString().includes('native')) {
@@ -76,11 +76,11 @@ export const SecurityGuard = {
   },
 
   preventPageTamper() {
-    if (typeof document === 'undefined') return
+    if (typeof document === 'undefined') {return}
     
     document.addEventListener('contextmenu', e => e.preventDefault())
     document.addEventListener('keydown', e => {
-      if (e.ctrlKey && ['s', 'u'].includes(e.key)) e.preventDefault()
+      if (e.ctrlKey && ['s', 'u'].includes(e.key)) {e.preventDefault()}
     })
   }
 }
