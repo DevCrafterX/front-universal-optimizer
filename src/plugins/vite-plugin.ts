@@ -45,6 +45,7 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
   const scanner = new CodeScanner()
   const isDev = config.env === 'development'
   let hasReported = false  // 防止重复输出报告
+  let isFirstTransform = true  // 标记是否是第一次 transform
 
   return {
     name: 'front-universal-optimizer-vite',
@@ -55,6 +56,7 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
       if (isDev) {
         console.log('\n')
         console.log('🔍 [front-universal-optimizer] 代码扫描已启用，正在分析您的代码...')
+        console.log('📝 插件将在扫描过程中实时输出优化建议\n')
       }
     },
 
@@ -122,24 +124,27 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
       if (isDev) {
         try {
           scanner.scanFile(id, code)
-        } catch {
-          // 扫描失败不影响构建
-        }
-      }
-      
-      // 开发环境下进行代码扫描
-      if (isDev) {
-        try {
-          scanner.scanFile(id, code)
-          // 每隔 10 个文件输出一次快速提示
-          if (scanner.getResult().scannedFiles % 10 === 0) {
-            const result = scanner.getResult()
-            if (result.issues.length > 0) {
-              generateQuickTips(result)
-            }
+          
+          // 第一次扫描时输出提示信息
+          if (isFirstTransform) {
+            isFirstTransform = false
+            console.log('📄 开始扫描项目文件...\n')
           }
-        } catch {
-          // 扫描失败不影响构建
+          
+          // 每扫描一个文件就检查是否有问题需要输出
+          const result = scanner.getResult()
+          if (result.issues.length > 0 && !hasReported) {
+            hasReported = true
+            console.log('\n' + '='.repeat(60))
+            console.log('📋 [front-universal-optimizer] 发现优化建议：')
+            console.log('='.repeat(60))
+            generateQuickTips(result)
+            console.log('\n💡 提示：使用 optimizer.showOptimizationTips() 查看详细报告')
+            console.log('='.repeat(60) + '\n')
+          }
+        } catch (error) {
+          // 扫描失败不影响构建，但输出错误信息便于调试
+          console.warn(`[front-universal-optimizer] 扫描文件 ${id} 时出错:`, error)
         }
       }
       
