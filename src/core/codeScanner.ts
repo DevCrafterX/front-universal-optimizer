@@ -146,6 +146,8 @@ export class CodeScanner {
       this.checkDebounceThrottle(filePath, code, ast, traverse)
       this.checkMemoryLeaks(filePath, code, ast, traverse)
       this.checkLargeImports(filePath, code, ast, traverse)
+      this.checkConsoleOutput(filePath, code, ast, traverse)
+      this.checkAnyType(filePath, code, ast, traverse)
     } catch {
       // 解析失败，降级为正则
       this.scanWithRegex(filePath, code)
@@ -393,6 +395,54 @@ export class CodeScanner {
     })
   }
 
+  // 6. 检测 console 输出（生产环境应该移除）
+  private checkConsoleOutput(filePath: string, code: string, ast: any, traverse: any) {
+    traverse(ast, {
+      CallExpression(path) {
+        const node = path.node as t.CallExpression
+        const callee = node.callee as any
+        
+        // 检测 console.log/warn/error/info/debug
+        if (
+          callee.object?.name === 'console' &&
+          ['log', 'warn', 'error', 'info', 'debug'].includes(callee.property?.name)
+        ) {
+          const line = node.loc?.start.line || 0
+          this.issues.push({
+            type: 'best-practice',
+            severity: 'low',
+            file: filePath,
+            line,
+            column: 1,
+            message: `检测到 console.${callee.property.name} 输出，生产环境应该移除`,
+            suggestion: '移除 console 输出或使用专业的日志库',
+            codeFrame: this.getCodeFrame(code, line)
+          })
+        }
+      }
+    })
+  }
+
+  // 7. 检测 any 类型（TypeScript 最佳实践）
+  private checkAnyType(filePath: string, code: string, ast: any, traverse: any) {
+    traverse(ast, {
+      TSAnyKeyword(path) {
+        const node = path.node as t.TSAnyKeyword
+        const line = node.loc?.start.line || 0
+        this.issues.push({
+          type: 'best-practice',
+          severity: 'medium',
+          file: filePath,
+          line,
+          column: 1,
+          message: '使用 any 类型会降低 TypeScript 的类型安全性',
+          suggestion: '使用具体的类型定义或 unknown 替代 any',
+          codeFrame: this.getCodeFrame(code, line)
+        })
+      }
+    })
+  }
+
   // 使用正则扫描（用于非 JS/TS 文件或 AST 解析失败时）
   private scanWithRegex(filePath: string, code: string) {
     const lines = code.split('\n')
@@ -466,6 +516,48 @@ export class CodeScanner {
           column: 1,
           message: '检测到定时器，请确保在适当时机清理',
           suggestion: '使用 useAutoClear 工具自动管理定时器清理',
+          codeFrame: line.trim()
+        })
+      }
+
+      // 6. 检测 console.log（生产环境应该移除）
+      if (/console\.(log|warn|error|info|debug)\s*\(/.test(line)) {
+        this.issues.push({
+          type: 'best-practice',
+          severity: 'low',
+          file: filePath,
+          line: idx + 1,
+          column: 1,
+          message: '检测到 console 输出，生产环境应该移除',
+          suggestion: '移除 console.log 或使用专业的日志库',
+          codeFrame: line.trim()
+        })
+      }
+
+      // 7. 检测 any 类型（TypeScript 最佳实践）
+      if (/:\s*any\b/.test(line) || /<any>/.test(line)) {
+        this.issues.push({
+          type: 'best-practice',
+          severity: 'medium',
+          file: filePath,
+          line: idx + 1,
+          column: 1,
+          message: '使用 any 类型会降低 TypeScript 的类型安全性',
+          suggestion: '使用具体的类型定义或 unknown 替代 any',
+          codeFrame: line.trim()
+        })
+      }
+
+      // 8. 检测内联样式（应该使用 CSS 类）
+      if (/\bstyle\s*=\s*["']/.test(line) && !line.includes('v-bind')) {
+        this.issues.push({
+          type: 'best-practice',
+          severity: 'low',
+          file: filePath,
+          line: idx + 1,
+          column: 1,
+          message: '使用内联样式，建议使用 CSS 类代替',
+          suggestion: '将内联样式提取到 <style> 块或 CSS 文件中',
           codeFrame: line.trim()
         })
       }
