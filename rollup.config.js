@@ -40,17 +40,16 @@ const plugins = [
 const productionPlugins = [
   terser({
     compress: {
-      drop_console: true, // 移除 console（可选）
+      // 注意：不要移除 console，因为插件需要在终端输出优化建议
+      // drop_console: true, // 注释掉，保留 console 输出
       drop_debugger: true,
-      pure_funcs: ['console.log', 'console.info'], // 移除指定函数调用
+      // pure_funcs: ['console.log', 'console.info'], // 注释掉，保留 console 调用
       passes: 2 // 多次压缩优化
     },
     mangle: {
       toplevel: true, // 混淆顶级作用域变量
-      properties: {
-        // 可选：混淆属性名（需谨慎，可能破坏 API）
-        // regex: /^_/ // 只混淆下划线开头的属性
-      }
+      // 不混淆属性名，保持 API 可读性
+      properties: false
     },
     format: {
       comments: false // 移除注释

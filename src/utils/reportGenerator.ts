@@ -126,11 +126,48 @@ export function generateQuickTips(result: ScanResult): void {
     return
   }
 
-  const highCount = issues.filter(i => i.severity === 'high').length
-  const mediumCount = issues.filter(i => i.severity === 'medium').length
+  // 按严重程度排序
+  const severityOrder = { high: 0, medium: 1, low: 2 }
+  const sortedIssues = [...issues].sort((a, b) => 
+    severityOrder[a.severity] - severityOrder[b.severity]
+  )
 
-  console.log(chalk.yellow(`\n🔍 发现 ${issues.length} 个可优化点 (${highCount} 高优先级, ${mediumCount} 中优先级)`))
-  console.log(chalk.gray('   运行完整扫描查看详细报告和建议'))
-  console.log(chalk.gray('   使用: optimizer.showOptimizationTips()'))
+  // 输出高优先级问题
+  const highIssues = sortedIssues.filter(i => i.severity === 'high')
+  if (highIssues.length > 0) {
+    console.log(chalk.red('\n🔴 高优先级问题:'))
+    highIssues.forEach((issue, idx) => {
+      console.log(chalk.white(`   ${idx + 1}. ${issue.message}`))
+      console.log(chalk.gray(`       ${issue.file}:${issue.line}`))
+      console.log(chalk.green(`      💡 ${issue.suggestion}`))
+      console.log('')
+    })
+  }
+
+  // 输出中优先级问题
+  const mediumIssues = sortedIssues.filter(i => i.severity === 'medium')
+  if (mediumIssues.length > 0) {
+    console.log(chalk.yellow('\n🟡 中优先级问题:'))
+    mediumIssues.forEach((issue, idx) => {
+      console.log(chalk.white(`   ${idx + 1}. ${issue.message}`))
+      console.log(chalk.gray(`      📁 ${issue.file}:${issue.line}`))
+      console.log(chalk.green(`      💡 ${issue.suggestion}`))
+      console.log('')
+    })
+  }
+
+  // 输出低优先级问题
+  const lowIssues = sortedIssues.filter(i => i.severity === 'low')
+  if (lowIssues.length > 0) {
+    console.log(chalk.green('\n🟢 低优先级问题:'))
+    lowIssues.forEach((issue, idx) => {
+      console.log(chalk.white(`   ${idx + 1}. ${issue.message}`))
+      console.log(chalk.gray(`      📁 ${issue.file}:${issue.line}`))
+      console.log(chalk.green(`      💡 ${issue.suggestion}`))
+      console.log('')
+    })
+  }
+
+  console.log(chalk.gray('\n💡 提示: 使用 optimizer.showOptimizationTips() 查看完整报告'))
   console.log('')
 }
