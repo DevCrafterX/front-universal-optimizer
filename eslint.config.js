@@ -43,9 +43,27 @@ export default [
     ]
   },
   {
-    files: ['src/utils/optimizeTips.ts'],
+    files: ['src/utils/optimizeTips.ts', 'src/utils/reportGenerator.ts'],
     rules: {
-      'no-console': 'off' // 允许优化提示文件中使用 console.log
+      'no-console': 'off' // 允许优化提示和报告生成文件中使用 console.log
+    }
+  },
+  {
+    files: ['src/core/codeScanner.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off', // 允许动态 require Babel 包
+      '@typescript-eslint/no-unused-vars': ['warn', { 
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_' // 允许下划线前缀的未使用变量
+      }]
+    }
+  },
+  {
+    files: ['src/plugins/vite-plugin.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', { 
+        varsIgnorePattern: '^_' // 允许下划线前缀的未使用变量
+      }]
     }
   }
 ]

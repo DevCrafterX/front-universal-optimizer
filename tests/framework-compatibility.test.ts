@@ -10,18 +10,24 @@ describe('Framework Compatibility Tests', () => {
 
   describe('Frame Detection', () => {
     it('应该在非浏览器环境返回 NATIVE', () => {
-      const frame = detectFrame()
-      expect(frame).toBe(FrameType.NATIVE)
+      const frameResult = detectFrame()
+      expect(frameResult.type).toBe(FrameType.NATIVE)
+      expect(frameResult.features).toEqual([])
     })
 
     it('应该为所有框架类型返回对应的优化规则', () => {
       const frames = [
         FrameType.VUE2,
         FrameType.VUE3,
+        FrameType.VUE3_4_PLUS,
         FrameType.REACT,
+        FrameType.REACT_SERVER,
         FrameType.ANGULAR,
         FrameType.UNIAPP,
-        FrameType.NATIVE
+        FrameType.NATIVE,
+        FrameType.SVELTE,
+        FrameType.NEXTJS,
+        FrameType.NUX
       ]
 
       frames.forEach(frame => {
