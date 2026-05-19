@@ -127,6 +127,22 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
         }
       }
       
+      // 开发环境下进行代码扫描
+      if (isDev) {
+        try {
+          scanner.scanFile(id, code)
+          // 每隔 10 个文件输出一次快速提示
+          if (scanner.getResult().scannedFiles % 10 === 0) {
+            const result = scanner.getResult()
+            if (result.issues.length > 0) {
+              generateQuickTips(result)
+            }
+          }
+        } catch {
+          // 扫描失败不影响构建
+        }
+      }
+      
       if (config.env === 'production' && config.clearConsole) {
         const strategy = config.consoleRemovalStrategy || 'babel'
         
