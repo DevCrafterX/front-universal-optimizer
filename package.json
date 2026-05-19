@@ -1,0 +1,43 @@
+{
+  "name": "front-universal-optimizer",
+  "version": "1.0.0",
+  "description": "前端通用性能+安全优化工具库，零侵入仅提示，多框架适配，编译自动优化",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "vite": "^4.0.0 || ^5.0.0",
+    "webpack": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "chalk": "^4.1.2",
+    "terser-webpack-plugin": "^5.3.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@vitest/ui": "^1.4.0",
+    "jsdom": "^24.0.0",
+    "rollup": "^4.14.0",
+    "rollup-plugin-dts": "^6.1.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.0",
+    "vitest": "^1.4.0",
+    "webpack": "^5.91.0"
+  },
+  "keywords": ["前端优化","性能优化","前端安全","vue优化","react优化","开发提示","零侵入优化"],
+  "author": "",
+  "license": "MIT"
+}

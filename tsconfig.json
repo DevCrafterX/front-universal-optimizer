@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "lib": ["ES2020", "DOM"], // 添加 DOM 类型支持（因为代码中使用了 window、document）
+    "noImplicitAny": false // 允许 any 类型（插件中 compiler 参数等场景需要）
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"] // 明确排除不需要编译的目录
+}
