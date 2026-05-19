@@ -44,10 +44,19 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
   // 创建代码扫描器
   const scanner = new CodeScanner()
   const isDev = config.env === 'development'
+  let hasReported = false  // 防止重复输出报告
 
   return {
     name: 'front-universal-optimizer-vite',
     enforce: 'post',
+
+    // 在构建开始时输出启动提示
+    buildStart() {
+      if (isDev) {
+        console.log('\n')
+        console.log('🔍 [front-universal-optimizer] 代码扫描已启用，正在分析您的代码...')
+      }
+    },
 
     config(viteConfig) {
       const chunkSplitConfig = typeof config.chunkSplit === 'object'
@@ -105,8 +114,18 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
     },
 
     transform(code, id) {
-      // 只处理 JS/TS 文件
-      if (!/\.[jt]sx?$/.test(id)) {return null}
+      // 支持多种文件类型：JS/TS/JSX/TSX/Vue/Svelte/Astro
+      const supportedExtensions = /\.(jsx?|tsx?|vue|svelte|astro)$/i
+      if (!supportedExtensions.test(id)) {return null}
+      
+      // 开发环境下进行代码扫描
+      if (isDev) {
+        try {
+          scanner.scanFile(id, code)
+        } catch {
+          // 扫描失败不影响构建
+        }
+      }
       
       // 开发环境下进行代码扫描
       if (isDev) {
@@ -138,6 +157,26 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
         }
       }
       return null
+    },
+
+    // 在构建完成时输出扫描报告
+    closeBundle() {
+      if (isDev && !hasReported) {
+        hasReported = true
+        const result = scanner.getResult()
+        
+        // 只有发现问题时才输出报告
+        if (result.issues.length > 0) {
+          console.log('\n')
+          console.log('📋 [front-universal-optimizer] 扫描完成，发现以下优化建议：')
+          generateQuickTips(result)
+          console.log('\n💡 提示：使用 optimizer.showOptimizationTips() 查看详细报告')
+          console.log('\n')
+        } else {
+          console.log('\n✅ [front-universal-optimizer] 扫描完成，代码质量优秀！')
+          console.log('\n')
+        }
+      }
     },
 
     transformIndexHtml(html) {
