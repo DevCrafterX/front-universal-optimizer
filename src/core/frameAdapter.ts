@@ -8,13 +8,13 @@ export enum FrameType {
 }
 
 export function detectFrame(): FrameType {
-  if (typeof window === 'undefined') return FrameType.NATIVE
+  if (typeof window === 'undefined') {return FrameType.NATIVE}
   const win = window as any
-  if (win.__VUE__ && win.Vue?.version?.startsWith('3')) return FrameType.VUE3
-  if (win.__VUE__ && win.Vue?.version?.startsWith('2')) return FrameType.VUE2
-  if (win.__REACT__) return FrameType.REACT
-  if (win.angular) return FrameType.ANGULAR
-  if (win.uni) return FrameType.UNIAPP
+  if (win.__VUE__ && win.Vue?.version?.startsWith('3')) {return FrameType.VUE3}
+  if (win.__VUE__ && win.Vue?.version?.startsWith('2')) {return FrameType.VUE2}
+  if (win.__REACT__) {return FrameType.REACT}
+  if (win.angular) {return FrameType.ANGULAR}
+  if (win.uni) {return FrameType.UNIAPP}
   return FrameType.NATIVE
 }
 
