@@ -48,35 +48,54 @@ export default function ViteOptPlugin(config: OptimizeConfig): Plugin {
         ? config.chunkSplit
         : { enable: config.chunkSplit }
 
-      if (chunkSplitConfig.enable && viteConfig.build?.rollupOptions) {
-        const output = viteConfig.build.rollupOptions.output as any
-        const existingManualChunks = output?.manualChunks
-        
-        viteConfig.build.rollupOptions.output = {
-          ...output,
-          manualChunks: (id: string) => {
-            // 如果用户已有自定义分包逻辑，保留它
-            if (typeof existingManualChunks === 'function') {
-              return existingManualChunks(id)
-            }
-            
-            // 根据策略生成分包
-            const strategy = chunkSplitConfig.strategy || 'fine-grained'
-            if (strategy === 'fine-grained' || strategy === 'custom') {
-              return createFineGrainedChunks(chunkSplitConfig)(id)
-            } else {
-              // 默认策略：所有 node_modules 打包到 vendor
-              if (id.includes('node_modules')) {
-                return 'vendor'
+      // Vite 5 兼容：使用返回新对象的方式，避免直接修改引用
+      const additionalConfig: any = {}
+      
+      if (chunkSplitConfig.enable) {
+        additionalConfig.build = {
+          rollupOptions: {
+            output: {
+              manualChunks: (id: string) => {
+                // 获取用户已有的 manualChunks 配置
+                const existingOutput = viteConfig.build?.rollupOptions?.output
+                let existingManualChunks: any = undefined
+                
+                // 处理 output 可能是数组或对象的情况
+                if (Array.isArray(existingOutput)) {
+                  existingManualChunks = existingOutput[0]?.manualChunks
+                } else if (typeof existingOutput === 'object') {
+                  existingManualChunks = (existingOutput as any).manualChunks
+                }
+                
+                // 如果用户已有自定义分包逻辑，优先保留它
+                if (typeof existingManualChunks === 'function') {
+                  return existingManualChunks(id)
+                }
+                
+                // 根据策略生成分包
+                const strategy = chunkSplitConfig.strategy || 'fine-grained'
+                if (strategy === 'fine-grained' || strategy === 'custom') {
+                  return createFineGrainedChunks(chunkSplitConfig)(id)
+                } else {
+                  // 默认策略：所有 node_modules 打包到 vendor
+                  if (id.includes('node_modules')) {
+                    return 'vendor'
+                  }
+                }
               }
             }
           }
         }
       }
-      if (config.brotliCompress && viteConfig.build) {
-        (viteConfig.build as any).brotliSize = true
+      
+      if (config.brotliCompress) {
+        additionalConfig.build = {
+          ...(additionalConfig.build || {}),
+          brotliSize: true
+        }
       }
-      return viteConfig
+      
+      return Object.keys(additionalConfig).length > 0 ? additionalConfig : undefined
     },
 
     transform(code, id) {
